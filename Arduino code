@@ -1,0 +1,62 @@
+#include <LiquidCrystal.h>
+#include <Servo.h>
+
+#define SERVO_PIN 9
+#define BUZZER_PIN 8
+#define UPDATE_LED_PIN 10
+
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+Servo doorServo;
+
+void setup() {
+    Serial.begin(9600);
+    Serial.setTimeout(500);
+
+    lcd.begin(16, 2);
+    lcd.setCursor(0, 0);
+    lcd.print("Waiting...");
+
+    doorServo.attach(SERVO_PIN);
+    doorServo.write(0);
+
+    pinMode(BUZZER_PIN, OUTPUT);
+    pinMode(UPDATE_LED_PIN, OUTPUT);
+    digitalWrite(UPDATE_LED_PIN, LOW);
+}
+
+void loop() {
+    if (Serial.available()) {
+        String accessStatus = Serial.readStringUntil('\n');
+        accessStatus.trim();
+        while (Serial.available()) Serial.read();
+
+        lcd.clear();
+
+        if (accessStatus == "UPDATING") {
+            lcd.setCursor(0, 0);
+            lcd.print("Updating...");
+            digitalWrite(UPDATE_LED_PIN, HIGH);
+            return;
+        }
+        digitalWrite(UPDATE_LED_PIN, LOW);
+
+        if (accessStatus == "GRANTED") {
+            lcd.setCursor(0, 0);
+            lcd.print("Access Granted");
+            doorServo.write(90);
+            delay(3000);
+            doorServo.write(0);
+        } else {
+            lcd.setCursor(0, 0);
+            lcd.print("Access Denied");
+            tone(BUZZER_PIN, 1000);
+            delay(3000);
+            noTone(BUZZER_PIN);
+        }
+
+        delay(3000);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Waiting...");
+    }
+}
